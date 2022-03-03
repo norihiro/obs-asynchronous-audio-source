@@ -60,6 +60,12 @@ set(PLUGIN_HEADERS
 	src/plugin-macros.generated.h
 )
 
+if(MSVC)
+	set(PLUGIN_PLATFORM_DEPS
+		${W32_PTHREADS_LIB})
+endif()
+
+
 # --- Platform-independent build settings ---
 add_library(${CMAKE_PROJECT_NAME} MODULE ${PLUGIN_SOURCES} ${PLUGIN_HEADERS})
 
@@ -69,6 +75,7 @@ include_directories(
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
 	libobs
+	${PLUGIN_PLATFORM_DEPS}
 )
 
 # --- End of section ---
