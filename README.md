@@ -17,6 +17,12 @@ The frequency of a sine wave output by this plugin.
 
 Make audio data a little slower or faster if set to negative or positive, respectively.
 
+- If you set negative value, you will see a short period of silence.
+  ![glitch-442Hz-slow](doc/glitch-442Hz-slow.png)
+- If you set positive value, you will see a block of dropped samples.
+  ![glitch-442Hz-440Hz-fast](doc/glitch-442Hz-440Hz-fast.png)
+- I recommend to set `+/-5000 ppm` so that you will see the issue more than 15 times in a minute.
+
 ## Build and install
 ### Linux
 Use cmake to build on Linux. After checkout, run these commands.
