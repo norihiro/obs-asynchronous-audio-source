@@ -143,7 +143,10 @@ static void *thread_main(void *data)
 			uint64_t x = frames * (1000000000LL - skew_ppb) + last_sent_rem;
 			last_sent += x / rate;
 			last_sent_rem = x % rate;
-			timeout_ms = (last_sent + frame_ns - cur) / 1000000;
+			if (last_sent + frame_ns > cur)
+				timeout_ms = (last_sent + frame_ns - cur) / 1000000;
+			else
+				timeout_ms = 0;
 		}
 	}
 
