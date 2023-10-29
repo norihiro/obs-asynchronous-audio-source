@@ -116,7 +116,7 @@ static void *thread_main(void *data)
 			}
 
 			for (int ch = 0; ch < N_CHANNELS; ch++)
-				fltp[ch][i] = sin(M_PI * t * freq[ch] / rate);
+				fltp[ch][i] = sin(M_PI * 2 * t * freq[ch] / rate);
 
 			if (++t >= rate)
 				t = 0;
