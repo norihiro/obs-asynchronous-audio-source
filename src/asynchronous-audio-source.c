@@ -7,14 +7,19 @@
 
 #define STARTUP_TIMEOUT_MS 500
 
+struct cfg_s
+{
+	int freq[N_CHANNELS];
+	int skew_ppb;
+	int rate;
+};
+
 struct source_s
 {
 	obs_source_t *context;
 
 	// properties
-	int freq[N_CHANNELS];
-	int skew_ppb;
-	int rate;
+	struct cfg_s cfg;
 
 	pthread_t thread;
 	pthread_mutex_t mutex;
@@ -53,24 +58,19 @@ static void update(void *data, obs_data_t *settings)
 {
 	struct source_s *s = data;
 
-	int freq[N_CHANNELS];
-	int skew_ppb;
-	int rate;
+	struct cfg_s cfg;
 
 	for (int ch = 0; ch < N_CHANNELS; ch++) {
 		char name[8];
 		sprintf(name, "freq-%d", ch);
-		freq[ch] = obs_data_get_int(settings, name);
+		cfg.freq[ch] = obs_data_get_int(settings, name);
 	}
 
-	skew_ppb = (int)(obs_data_get_double(settings, "skew") * 1e3);
-	rate = obs_data_get_int(settings, "rate");
+	cfg.skew_ppb = (int)(obs_data_get_double(settings, "skew") * 1e3);
+	cfg.rate = obs_data_get_int(settings, "rate");
 
 	pthread_mutex_lock(&s->mutex);
-	for (int ch = 0; ch < N_CHANNELS; ch++)
-		s->freq[ch] = freq[ch];
-	s->skew_ppb = skew_ppb;
-	s->rate = rate;
+	s->cfg = cfg;
 	pthread_mutex_unlock(&s->mutex);
 }
 
@@ -93,10 +93,10 @@ static void *thread_main(void *data)
 
 	unsigned long timeout_ms = STARTUP_TIMEOUT_MS;
 
-	int freq[N_CHANNELS] = {0};
-	int skew_ppb = 0;
+	struct cfg_s cfg = {
+		.rate = 48000,
+	};
 	int t = 0;
-	int rate = 48000;
 	uint64_t first_ns = 0;
 	uint64_t last_sent = 0;
 	uint64_t n_output = 0;
@@ -107,31 +107,28 @@ static void *thread_main(void *data)
 		for (int i = 0; i < frames; i++) {
 			if (t == 0) {
 				pthread_mutex_lock(&s->mutex);
-				for (int ch = 0; ch < N_CHANNELS; ch++)
-					freq[ch] = s->freq[ch];
-				skew_ppb = s->skew_ppb;
-				if (s->rate > 0)
-					rate = s->rate;
+				if (s->cfg.rate > 0)
+					cfg = s->cfg;
 				pthread_mutex_unlock(&s->mutex);
 			}
 
 			for (int ch = 0; ch < N_CHANNELS; ch++)
-				fltp[ch][i] = sin(M_PI * 2 * t * freq[ch] / rate);
+				fltp[ch][i] = sin(M_PI * 2 * t * cfg.freq[ch] / cfg.rate);
 
-			if (++t >= rate)
+			if (++t >= cfg.rate)
 				t = 0;
 		}
 
 		uint64_t cur = os_gettime_ns();
-		uint64_t frame_ns = frames * 1000000000LL / rate;
-		out.samples_per_sec = rate;
+		uint64_t frame_ns = frames * 1000000000LL / cfg.rate;
+		out.samples_per_sec = cfg.rate;
 		out.timestamp = cur - frame_ns;
 		obs_source_output_audio(s->context, &out);
 		n_output += frames;
 
 		if (t < frames) {
 			blog(LOG_INFO, "output %.3f seconds audio, took %.3f seconds, skew=%f[ppm]",
-			     (double)n_output / rate, (cur - first_ns) * 1e-9, skew_ppb * 1e-3);
+			     (double)n_output / cfg.rate, (cur - first_ns) * 1e-9, cfg.skew_ppb * 1e-3);
 		}
 
 		if (!last_sent) {
@@ -140,9 +137,9 @@ static void *thread_main(void *data)
 			timeout_ms = frame_ns / 1000000;
 		}
 		else {
-			uint64_t x = frames * (1000000000LL - skew_ppb) + last_sent_rem;
-			last_sent += x / rate;
-			last_sent_rem = x % rate;
+			uint64_t x = frames * (1000000000LL - cfg.skew_ppb) + last_sent_rem;
+			last_sent += x / cfg.rate;
+			last_sent_rem = x % cfg.rate;
 			if (last_sent + frame_ns > cur)
 				timeout_ms = (last_sent + frame_ns - cur) / 1000000;
 			else
