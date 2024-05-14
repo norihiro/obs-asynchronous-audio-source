@@ -11,6 +11,7 @@ set(PLUGIN_AUTHOR "Norihiro Kamae")
 set(MACOS_BUNDLEID "net.nagater.obs-asynchronous-audio-source")
 set(MACOS_PACKAGE_UUID "7CFB4F4F-18B5-4272-B66C-A54645EA4112")
 set(MACOS_INSTALLER_UUID "E0E7FB6E-E476-4612-B595-54E8F00A053D")
+set(PLUGIN_URL "https://github.com/norihiro/obs-asynchronous-audio-source/")
 set(ID_PREFIX "net.nagater.obs.")
 
 # Replace `me@contoso.com` with the maintainer email address you want to put in Linux packages
