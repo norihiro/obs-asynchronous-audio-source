@@ -1,4 +1,4 @@
-# OBS Asynchronous Audio Source Plugin
+# Asynchronous Audio Source Plugin for OBS Studio
 
 ## Introduction
 
