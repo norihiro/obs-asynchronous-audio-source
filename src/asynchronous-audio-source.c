@@ -12,6 +12,7 @@ struct cfg_s
 	int freq[N_CHANNELS];
 	int skew_ppb;
 	int rate;
+	int verbose;
 };
 
 struct source_s
@@ -43,6 +44,7 @@ static obs_properties_t *get_properties(void *data)
 	prop = obs_properties_add_float(props, "skew", obs_module_text("Skew"), -5.0e4, +5.0e4, 1);
 	obs_property_float_set_suffix(prop, obs_module_text("ppm"));
 	obs_properties_add_int(props, "rate", obs_module_text("Sampling frequency"), 32000, 96000, 1000);
+	obs_properties_add_int(props, "verbose", obs_module_text("Verbosity"), 0, 1, 1);
 
 	return props;
 }
@@ -68,6 +70,7 @@ static void update(void *data, obs_data_t *settings)
 
 	cfg.skew_ppb = (int)(obs_data_get_double(settings, "skew") * 1e3);
 	cfg.rate = obs_data_get_int(settings, "rate");
+	cfg.verbose = obs_data_get_int(settings, "verbose");
 
 	pthread_mutex_lock(&s->mutex);
 	s->cfg = cfg;
@@ -126,7 +129,7 @@ static void *thread_main(void *data)
 		obs_source_output_audio(s->context, &out);
 		n_output += frames;
 
-		if (t < frames) {
+		if (cfg.verbose > 0 && t < frames) {
 			blog(LOG_INFO, "output %.3f seconds audio, took %.3f seconds, skew=%f[ppm]",
 			     (double)n_output / cfg.rate, (cur - first_ns) * 1e-9, cfg.skew_ppb * 1e-3);
 		}
